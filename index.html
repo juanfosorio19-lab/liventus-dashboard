@@ -1,0 +1,1998 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboards Liventus</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        :root {
+            --bg-primary: #0f1419;
+            --bg-secondary: #1a2033;
+            --bg-card: #1e2838;
+            --accent-primary: #9dc642;
+            --accent-secondary: #c4d82e;
+            --accent-blue: #00d4ff;
+            --text-primary: #ffffff;
+            --text-secondary: #8b96a8;
+            --border: rgba(157, 198, 66, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: var(--text-secondary);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        /* Dashboard Selector */
+        .dashboard-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-tab {
+            padding: 15px 40px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .dashboard-tab:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+        }
+
+        .dashboard-tab.active {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            border-color: var(--accent-primary);
+        }
+
+        /* Dashboard Content */
+        .dashboard-content {
+            display: none;
+        }
+
+        .dashboard-content.active {
+            display: block;
+        }
+
+        /* Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        select, button, input {
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 6px;
+        }
+
+        select:hover, select:focus, input:focus {
+            border-color: var(--accent-primary);
+            outline: none;
+        }
+
+        button {
+            background: var(--bg-card);
+            border: 1px solid var(--accent-primary);
+            color: var(--accent-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.85rem;
+        }
+
+        button:hover {
+            background: rgba(157, 198, 66, 0.1);
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 20px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+
+        .stats-grid-compact {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .stat-card-compact {
+            padding: 16px;
+        }
+        .stat-value-compact {
+            font-size: 2.2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-blue));
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            font-weight: 400;
+        }
+
+        .stat-value {
+            font-size: 2.6rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            line-height: 1;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .stat-info {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Charts Section */
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .chart-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-blue));
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--accent-primary);
+            margin-bottom: 20px;
+            text-transform: none;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Table Section */
+        .table-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 40px;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .table-title {
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--accent-primary);
+            letter-spacing: 0.5px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 400;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(157, 198, 66, 0.05);
+            transition: background 0.15s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(157, 198, 66, 0.03);
+        }
+
+        tbody td {
+            padding: 14px 16px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-success {
+            background: rgba(157, 198, 66, 0.15);
+            color: var(--accent-primary);
+        }
+
+        /* Error State */
+        .error {
+            background: var(--bg-card);
+            border: 1px solid #ff3366;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .error-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .error-message {
+            color: #ff3366;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .error-details {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h3 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .info-box p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .dashboard-selector {
+                flex-direction: column;
+            }
+
+            .dashboard-tab {
+                width: 100%;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                min-width: 1000px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dashboards Liventus</h1>
+        </header>
+
+        <!-- Dashboard Selector -->
+        <div class="dashboard-selector">
+            <button class="dashboard-tab active" data-dashboard="produccion">
+                Dashboard de Producción
+            </button>
+            <button class="dashboard-tab" data-dashboard="observaciones">
+                Dashboard de Observaciones
+            </button>
+                    <button class="dashboard-tab" data-dashboard="capacitaciones">
+                Dashboard de Capacitaciones
+            </button>
+</div>
+
+        <!-- DASHBOARD DE PRODUCCIÓN -->
+        <div id="dashboard-produccion" class="dashboard-content active">
+            <div class="controls">
+                <div class="control-group">
+                    <label>Dispositivo</label>
+                    <select id="componentFilter">
+                        <option value="controller">Controllers</option>
+                        <option value="modem">Modems</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Mes</label>
+                    <select id="mesFilter">
+                        <option value="">Todos los meses</option>
+                        <option value="Enero">Enero</option>
+                        <option value="Febrero">Febrero</option>
+                        <option value="Marzo">Marzo</option>
+                        <option value="Abril">Abril</option>
+                        <option value="Mayo">Mayo</option>
+                        <option value="Junio">Junio</option>
+                        <option value="Julio">Julio</option>
+                        <option value="Agosto">Agosto</option>
+                        <option value="Septiembre">Septiembre</option>
+                        <option value="Octubre">Octubre</option>
+                        <option value="Noviembre">Noviembre</option>
+                        <option value="Diciembre">Diciembre</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Año</label>
+                    <select id="anioFilter">
+                        <option value="">Todos los años</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Acción</label>
+                    <button id="loadBtnProduccion">
+                        <span>🔄 Actualizar Datos</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="statsContainerProduccion"></div>
+            <div id="chartsContainerProduccion"></div>
+            <div id="dataContainerProduccion"></div>
+        </div>
+
+        <!-- DASHBOARD DE OBSERVACIONES -->
+        <div id="dashboard-observaciones" class="dashboard-content">
+            <div class="controls">
+                <div class="control-group">
+                    <label>Año</label>
+                    <select id="anioFilterObs">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Semana</label>
+                    <select id="semanaFilterObs">
+                        <option value="">Todas las semanas</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Tipo de Incidencia</label>
+                    <select id="tipoIncidenciaFilter">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Técnico</label>
+                    <select id="tecnicoFilter">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Estación de Trabajo</label>
+                    <select id="estacionFilter">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Acción</label>
+                    <button id="loadBtnObservaciones">
+                        <span>🔄 Actualizar Datos</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="statsContainerObservaciones"></div>
+            <div id="chartsContainerObservaciones"></div>
+            <div id="dataContainerObservaciones"></div>
+        </div>
+
+        <!-- DASHBOARD DE CAPACITACIONES -->
+        <div id="dashboard-capacitaciones" class="dashboard-content">
+            <div class="controls">
+                <div class="control-group">
+                    <label>Técnico</label>
+                    <select id="capTecnicoFilter">
+                        <option value="">Todos los técnicos</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Temario</label>
+                    <select id="capTemarioFilter">
+                        <option value="">Todos los temarios</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Acción</label>
+                    <button class="load-btn" id="loadBtnCapacitaciones">
+                        <span>🔄</span>
+                        Actualizar Datos
+                    </button>
+                </div>
+            </div>
+
+            <div id="statsContainerCapacitaciones"></div>
+            <div id="chartsContainerCapacitaciones"></div>
+            <div id="dataContainerCapacitaciones"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==================== CONFIGURACIÓN ====================
+        const API_CONFIG = {
+            produccion: 'https://default518fd0e905114f3da2fab17fc8c4a3.eb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/6e22e02bbbe24af29698f62a17d8b7cc/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ElwQX-TIcbw6IJJpZes2cGfHIKx_JzoKt_gdWVGh9xA',
+            observaciones: 'https://default518fd0e905114f3da2fab17fc8c4a3.eb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d33dbbdacffe4068a4cb0a8dc5f5bce1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=PtNfbe6tZdFjweoTZUNGYr73gT5GnMv1ZUEhIzvKqnE'
+        ,
+            capacitaciones: 'https://default518fd0e905114f3da2fab17fc8c4a3.eb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/747ad54a0150419f88fb616d288b8d70/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=oA8ukG74EkIzuK_vc10I34VtEG9EcJ7BQAVV_9CJnTI'
+        };
+
+        let produccionData = [];
+        let observacionesData = [];
+        let capacitacionesData = [];
+        let chartsCapacitaciones = {};
+
+        let chartsProduccion = {};
+        let chartsObservaciones = {};
+
+        // ==================== DASHBOARD SELECTOR ====================
+        document.querySelectorAll('.dashboard-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const targetDashboard = this.dataset.dashboard;
+                
+                // Update active tab
+                document.querySelectorAll('.dashboard-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update active dashboard
+                document.querySelectorAll('.dashboard-content').forEach(d => d.classList.remove('active'));
+                document.getElementById(`dashboard-${targetDashboard}`).classList.add('active');
+            });
+        });
+
+        // ==================== DASHBOARD DE PRODUCCIÓN ====================
+        
+        async function loadProduccionData() {
+            const container = document.getElementById('dataContainerProduccion');
+            const statsContainer = document.getElementById('statsContainerProduccion');
+            const chartsContainer = document.getElementById('chartsContainerProduccion');
+            const loadBtn = document.getElementById('loadBtnProduccion');
+
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Cargando datos de producción...</p>
+                </div>
+            `;
+            statsContainer.innerHTML = '';
+            chartsContainer.innerHTML = '';
+            loadBtn.disabled = true;
+
+            try {
+                const response = await fetch(API_CONFIG.produccion, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.value && Array.isArray(data.value)) {
+                    produccionData = data.value;
+                } else if (Array.isArray(data)) {
+                    produccionData = data;
+                } else {
+                    throw new Error('Formato de datos inesperado');
+                }
+
+                console.log('Datos de producción cargados:', produccionData);
+                renderProduccionDashboard();
+
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = `
+                    <div class="error">
+                        <div class="error-icon">⚠️</div>
+                        <div class="error-message">Error al cargar los datos</div>
+                        <div class="error-details">${error.message}</div>
+                    </div>
+                `;
+                statsContainer.innerHTML = '';
+                chartsContainer.innerHTML = '';
+            } finally {
+                loadBtn.disabled = false;
+            }
+        }
+
+        function renderProduccionDashboard() {
+            const filteredData = getFilteredProduccionData();
+            const component = document.getElementById('componentFilter').value;
+            
+            if (filteredData.length === 0) {
+                document.getElementById('dataContainerProduccion').innerHTML = `
+                    <div class="error">
+                        <div class="error-icon">📊</div>
+                        <div class="error-message">No se encontraron datos</div>
+                    </div>
+                `;
+                return;
+            }
+
+            renderProduccionStats(filteredData, component);
+            renderProduccionCharts(filteredData, component);
+            renderProduccionTable(filteredData, component);
+        }
+
+        function renderProduccionStats(data, component) {
+            const stats = calculateProduccionStats(data, component);
+            const componentName = component === 'controller' ? 'Controllers' : 'Modems';
+            
+            document.getElementById('statsContainerProduccion').innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Requerimiento Real</div>
+                        <div class="stat-value">${stats.totalReq.toLocaleString()}</div>
+                        <div class="stat-info">📦 ${componentName}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Retrieval Real</div>
+                        <div class="stat-value">${stats.totalRetrieval.toLocaleString()}</div>
+                        <div class="stat-info">↑ ${stats.retrievalPercentage.toFixed(1)}% del requerimiento</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Semanas Analizadas</div>
+                        <div class="stat-value">${data.length}</div>
+                        <div class="stat-info">📅 ${stats.dateRange}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function calculateProduccionStats(data, component) {
+            const suffix = component === 'controller' ? 'Controller' : 'Modem';
+            
+            let totalReq = 0;
+            let totalRetrieval = 0;
+
+            data.forEach(row => {
+                totalReq += parseFloat(row[`ReqReal${suffix}`] || 0);
+                totalRetrieval += parseFloat(row[`RetrievalReal${suffix}`] || 0);
+            });
+
+            const retrievalPercentage = totalReq > 0 ? (totalRetrieval / totalReq) * 100 : 0;
+
+            const firstWeek = data[0];
+            const lastWeek = data[data.length - 1];
+            const dateRange = `${firstWeek.Mes} S${firstWeek.Semana} - ${lastWeek.Mes} S${lastWeek.Semana}`;
+
+            return { totalReq, totalRetrieval, retrievalPercentage, dateRange };
+        }
+
+        function renderProduccionCharts(data, component) {
+            const suffix = component === 'controller' ? 'Controller' : 'Modem';
+            const componentName = component === 'controller' ? 'Controllers' : 'Modems';
+
+            Object.values(chartsProduccion).forEach(chart => chart.destroy());
+            chartsProduccion = {};
+
+            document.getElementById('chartsContainerProduccion').innerHTML = `
+                <div class="charts-section">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Retrieval Planificado vs Real - ${componentName}</h3>
+                        <div class="chart-container">
+                            <canvas id="planVsRealChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Procesables vs Requerimiento por Semana - ${componentName}</h3>
+                        <div class="chart-container">
+                            <canvas id="procesablesVsReqChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Fabricaciones - ${componentName}</h3>
+                        <div class="chart-container">
+                            <canvas id="fabChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const labels = data.map(row => `S${row.Semana} ${row.Mes.substr(0, 3)}`);
+            const reqData = data.map(row => parseFloat(row[`ReqReal${suffix}`] || 0));
+            const retrievalData = data.map(row => parseFloat(row[`RetrievalReal${suffix}`] || 0));
+            const procesablesData = data.map(row => parseFloat(row[`Procesables${suffix}`] || 0));
+            const fabData = data.map(row => parseFloat(row[`Fab${suffix}`] || 0));
+            const planificadoData = data.map(row => parseFloat(row[`RetrievalPlanificado${suffix}`] || 0));
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#ffffff',
+                            font: { family: 'Inter', size: 11 },
+                            padding: 15
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#8b96a8', font: { family: 'Inter', size: 10 } },
+                        grid: { color: 'rgba(157, 198, 66, 0.05)' }
+                    },
+                    y: {
+                        ticks: { color: '#8b96a8', font: { family: 'Inter', size: 10 } },
+                        grid: { color: 'rgba(157, 198, 66, 0.05)' }
+                    }
+                }
+            };
+
+            chartsProduccion.planVsReal = new Chart(document.getElementById('planVsRealChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Retrieval Planificado',
+                            data: planificadoData,
+                            borderColor: '#00d4ff',
+                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                            tension: 0.4,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Retrieval Real',
+                            data: retrievalData,
+                            borderColor: '#9dc642',
+                            backgroundColor: 'rgba(157, 198, 66, 0.1)',
+                            tension: 0.4,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: chartOptions
+            });
+
+            chartsProduccion.procesablesVsReq = new Chart(document.getElementById('procesablesVsReqChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Requerimiento',
+                            data: reqData,
+                            backgroundColor: 'rgba(0, 212, 255, 0.6)',
+                            borderColor: '#00d4ff',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Procesables',
+                            data: procesablesData,
+                            backgroundColor: 'rgba(157, 198, 66, 0.6)',
+                            borderColor: '#9dc642',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: chartOptions
+            });
+
+            chartsProduccion.fab = new Chart(document.getElementById('fabChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Fabricaciones',
+                        data: fabData,
+                        backgroundColor: 'rgba(157, 198, 66, 0.5)',
+                        borderColor: '#9dc642',
+                        borderWidth: 1
+                    }]
+                },
+                options: chartOptions
+            });
+        }
+
+        function renderProduccionTable(data, component) {
+            const suffix = component === 'controller' ? 'Controller' : 'Modem';
+            const componentName = component === 'controller' ? 'Controllers' : 'Modems';
+
+            const tableHTML = `
+                <div class="table-section">
+                    <div class="table-header">
+                        <h2 class="table-title">Datos Detallados - ${componentName}</h2>
+                        <span class="badge badge-success">${data.length} registros</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Semana</th>
+                                    <th>Mes</th>
+                                    <th>Año</th>
+                                    <th>Req Real</th>
+                                    <th>Ret. Planificado</th>
+                                    <th>Ret. Real</th>
+                                    <th>Procesables</th>
+                                    <th>Fabricaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.map(row => `
+                                    <tr>
+                                        <td><strong>S${row.Semana}</strong></td>
+                                        <td>${row.Mes}</td>
+                                        <td>${row.Año}</td>
+                                        <td>${row[`ReqReal${suffix}`]}</td>
+                                        <td>${row[`RetrievalPlanificado${suffix}`]}</td>
+                                        <td>${row[`RetrievalReal${suffix}`]}</td>
+                                        <td>${Math.round(parseFloat(row[`Procesables${suffix}`] || 0))}</td>
+                                        <td>${row[`Fab${suffix}`]}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('dataContainerProduccion').innerHTML = tableHTML;
+        }
+
+        function getFilteredProduccionData() {
+            const mesFilter = document.getElementById('mesFilter').value;
+            const anioFilter = document.getElementById('anioFilter').value;
+
+            return produccionData.filter(row => {
+                const mesMatch = !mesFilter || row.Mes === mesFilter;
+                const anioMatch = !anioFilter || row.Año === anioFilter;
+                return mesMatch && anioMatch;
+            });
+        }
+
+        
+        // ==================== DASHBOARD DE OBSERVACIONES ====================
+
+        function _normKey(k) {
+            return String(k || '')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toLowerCase();
+        }
+
+        function _excelSerialToDate(n) {
+            // Excel serial date (days since 1899-12-30)
+            const ms = (Number(n) - 25569) * 86400 * 1000;
+            const d = new Date(ms);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function _parseAnyDate(v) {
+            if (v === null || v === undefined) return null;
+
+            // number or numeric string => Excel serial
+            if (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '' && !isNaN(v))) {
+                const d = _excelSerialToDate(v);
+                if (d) return d;
+            }
+
+            const s = String(v).trim();
+            if (!s) return null;
+
+            // yyyy-mm-dd
+            let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+            if (m) {
+                const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            // dd-mm-yyyy or dd/mm/yyyy
+            m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            if (m) {
+                const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            // fallback Date parse
+            const d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function _fmtDate(d) {
+            try {
+                return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            } catch (e) {
+                return '-';
+            }
+        }
+
+        function _getObsValue(row, candidates) {
+            for (const c of candidates) {
+                if (row && Object.prototype.hasOwnProperty.call(row, c) && row[c] !== undefined && row[c] !== null && row[c] !== '') {
+                    return row[c];
+                }
+            }
+            // attempt normalized lookup
+            const map = {};
+            Object.keys(row || {}).forEach(k => { map[_normKey(k)] = k; });
+            for (const c of candidates) {
+                const nk = _normKey(c);
+                if (map[nk]) {
+                    const v = row[map[nk]];
+                    if (v !== undefined && v !== null && v !== '') return v;
+                }
+            }
+            return '';
+        }
+
+        function _deriveObsFields(row) {
+            const rawFecha = _getObsValue(row, ['FECHA INCIDENCIA', 'Fecha Incidencia', 'Fecha', 'FECHA']);
+            const dateObj = _parseAnyDate(rawFecha);
+            const year = dateObj ? dateObj.getFullYear() : '';
+            const semana = _getObsValue(row, ['SEMANA', 'Semana']);
+            const semanaNum = semana !== '' ? Number(semana) : NaN;
+
+            const tecnico = _getObsValue(row, ['TÉCNICO', 'Tecnico', 'Técnico']);
+            const estacion = _getObsValue(row, ['ESTACIÓN DE TRABAJO', 'Estación de trabajo', 'Estacion de trabajo', 'EstacionTrabajo']);
+            const tipo = _getObsValue(row, ['TIPO DE INCIDENCIA', 'Tipo de incidencia', 'TipoIncidencia']);
+            const incidencia = _getObsValue(row, ['INCIDENCIA', 'Incidencia']);
+            const observador = _getObsValue(row, ['OBSERVADOR', 'Observador']);
+
+            const weekKey = (year && !isNaN(semanaNum)) ? `${year}-${String(semanaNum).padStart(2,'0')}` : '';
+
+            return {
+                dateObj,
+                fechaFmt: dateObj ? _fmtDate(dateObj) : (rawFecha !== '' ? String(rawFecha) : '-'),
+                year,
+                semanaNum: isNaN(semanaNum) ? '' : semanaNum,
+                weekKey,
+                tecnico: tecnico || '-',
+                estacion: estacion || '-',
+                tipo: tipo || '-',
+                incidencia: incidencia || '-',
+                observador: observador || '-'
+            };
+        }
+
+        async function loadObservacionesData() {
+            const container = document.getElementById('dataContainerObservaciones');
+            const statsContainer = document.getElementById('statsContainerObservaciones');
+            const chartsContainer = document.getElementById('chartsContainerObservaciones');
+            const loadBtn = document.getElementById('loadBtnObservaciones');
+
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Cargando datos de observaciones...</p>
+                </div>
+            `;
+            statsContainer.innerHTML = '';
+            chartsContainer.innerHTML = '';
+            loadBtn.disabled = true;
+
+            try {
+                const response = await fetch(API_CONFIG.observaciones, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.value && Array.isArray(data.value)) {
+                    observacionesData = data.value;
+                } else if (Array.isArray(data)) {
+                    observacionesData = data;
+                } else {
+                    throw new Error('Formato de datos inesperado');
+                }
+
+                // Pre-derivar campos para uso rápido
+                observacionesData = observacionesData.map(r => ({ ...r, __derived: _deriveObsFields(r) }));
+
+                populateObservacionesFilters();
+                renderObservacionesDashboard();
+
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = `
+                    <div class="error">
+                        <div class="error-icon">⚠️</div>
+                        <div class="error-message">Error al cargar los datos</div>
+                        <div class="error-details">${error.message}</div>
+                    </div>
+                `;
+                statsContainer.innerHTML = '';
+                chartsContainer.innerHTML = '';
+            } finally {
+                loadBtn.disabled = false;
+            }
+        }
+
+        function populateObservacionesFilters() {
+            const anioSelect = document.getElementById('anioFilterObs');
+            const semanaSelect = document.getElementById('semanaFilterObs');
+            const tipoSelect = document.getElementById('tipoIncidenciaFilter');
+            const tecnicoSelect = document.getElementById('tecnicoFilter');
+            const estacionSelect = document.getElementById('estacionFilter');
+
+            const years = Array.from(new Set(observacionesData.map(r => r.__derived.year).filter(Boolean))).sort((a,b) => a-b);
+            anioSelect.innerHTML = '<option value="">Todos</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+            // Week keys (year-week)
+            const weekKeys = Array.from(new Set(observacionesData.map(r => r.__derived.weekKey).filter(Boolean)))
+                .sort((a,b) => (a < b ? -1 : a > b ? 1 : 0));
+            semanaSelect.innerHTML = '<option value="">Todas las semanas</option>' + weekKeys.map(k => {
+                const parts = k.split('-');
+                const y = parts[0];
+                const w = Number(parts[1]);
+                return `<option value="${k}">${y} · Semana ${w}</option>`;
+            }).join('');
+
+            const tipos = Array.from(new Set(observacionesData.map(r => r.__derived.tipo).filter(v => v && v !== '-'))).sort();
+            tipoSelect.innerHTML = '<option value="">Todos</option>' + tipos.map(t => `<option value="${t}">${t}</option>`).join('');
+
+            const tecnicos = Array.from(new Set(observacionesData.map(r => r.__derived.tecnico).filter(v => v && v !== '-'))).sort();
+            tecnicoSelect.innerHTML = '<option value="">Todos</option>' + tecnicos.map(t => `<option value="${t}">${t}</option>`).join('');
+
+            const estaciones = Array.from(new Set(observacionesData.map(r => r.__derived.estacion).filter(v => v && v !== '-'))).sort();
+            estacionSelect.innerHTML = '<option value="">Todas</option>' + estaciones.map(e => `<option value="${e}">${e}</option>`).join('');
+        }
+
+        function _rebuildSemanaOptionsForYear(selectedYear) {
+            const semanaSelect = document.getElementById('semanaFilterObs');
+            const current = semanaSelect.value;
+
+            const weekKeys = Array.from(new Set(
+                observacionesData
+                    .filter(r => !selectedYear || String(r.__derived.year) === String(selectedYear))
+                    .map(r => r.__derived.weekKey)
+                    .filter(Boolean)
+            )).sort((a,b) => (a < b ? -1 : a > b ? 1 : 0));
+
+            semanaSelect.innerHTML = '<option value="">Todas las semanas</option>' + weekKeys.map(k => {
+                const parts = k.split('-');
+                const y = parts[0];
+                const w = Number(parts[1]);
+                return `<option value="${k}">${y} · Semana ${w}</option>`;
+            }).join('');
+
+            // Restore selection if still exists
+            const exists = weekKeys.includes(current);
+            semanaSelect.value = exists ? current : '';
+        }
+
+        function getFilteredObservacionesData() {
+            const anioFilter = document.getElementById('anioFilterObs').value;
+            const semanaFilter = document.getElementById('semanaFilterObs').value;
+            const tipoFilter = document.getElementById('tipoIncidenciaFilter').value;
+            const tecnicoFilter = document.getElementById('tecnicoFilter').value;
+            const estacionFilter = document.getElementById('estacionFilter').value;
+
+            return observacionesData.filter(r => {
+                const d = r.__derived;
+
+                const anioMatch = !anioFilter || String(d.year) === String(anioFilter);
+                const semanaMatch = !semanaFilter || String(d.weekKey) === String(semanaFilter);
+                const tipoMatch = !tipoFilter || String(d.tipo) === String(tipoFilter);
+                const tecnicoMatch = !tecnicoFilter || String(d.tecnico) === String(tecnicoFilter);
+                const estacionMatch = !estacionFilter || String(d.estacion) === String(estacionFilter);
+
+                return anioMatch && semanaMatch && tipoMatch && tecnicoMatch && estacionMatch;
+            });
+        }
+
+        function renderObservacionesDashboard() {
+            const filteredData = getFilteredObservacionesData();
+
+            if (filteredData.length === 0) {
+                document.getElementById('dataContainerObservaciones').innerHTML = `
+                    <div class="error">
+                        <div class="error-icon">📊</div>
+                        <div class="error-message">No se encontraron datos</div>
+                        <div class="error-details">Intenta con diferentes filtros.</div>
+                    </div>
+                `;
+                document.getElementById('statsContainerObservaciones').innerHTML = '';
+                document.getElementById('chartsContainerObservaciones').innerHTML = '';
+                return;
+            }
+
+            renderObservacionesStats(filteredData);
+            renderObservacionesCharts(filteredData);
+            renderObservacionesTable(filteredData);
+        }
+
+        function renderObservacionesStats(data) {
+            const totalObs = data.length;
+
+            // por semana (year-week)
+            const byWeek = {};
+            data.forEach(r => {
+                const k = r.__derived.weekKey || 'Sin semana';
+                byWeek[k] = (byWeek[k] || 0) + 1;
+            });
+            const semanasConDatos = Object.keys(byWeek).filter(k => k !== 'Sin semana').length;
+            const promedioPorSemana = semanasConDatos > 0 ? (totalObs / semanasConDatos) : 0;
+
+            // por tipo
+            const byTipo = {};
+            data.forEach(r => {
+                const t = r.__derived.tipo || 'Sin tipo';
+                byTipo[t] = (byTipo[t] || 0) + 1;
+            });
+            const tipoMasComun = Object.entries(byTipo).sort((a,b) => b[1]-a[1])[0];
+
+            document.getElementById('statsContainerObservaciones').innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Observaciones</div>
+                        <div class="stat-value">${totalObs.toLocaleString()}</div>
+                        <div class="stat-info">📋 Registros filtrados</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Promedio por Semana</div>
+                        <div class="stat-value">${promedioPorSemana.toFixed(1)}</div>
+                        <div class="stat-info">📊 Observaciones</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Semanas con Datos</div>
+                        <div class="stat-value">${semanasConDatos.toLocaleString()}</div>
+                        <div class="stat-info">📅 Semanas analizadas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Tipo Más Común</div>
+                        <div class="stat-value" style="font-size: 1.5rem;">${tipoMasComun ? tipoMasComun[0] : 'N/A'}</div>
+                        <div class="stat-info">🔍 ${tipoMasComun ? tipoMasComun[1].toLocaleString() : 0} casos</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderObservacionesCharts(data) {
+            Object.values(chartsObservaciones).forEach(ch => {
+                try { ch.destroy(); } catch(e) {}
+            });
+            chartsObservaciones = {};
+
+            // Group by year-week
+            const byWeek = {};
+            data.forEach(r => {
+                const k = r.__derived.weekKey || 'Sin semana';
+                byWeek[k] = (byWeek[k] || 0) + 1;
+            });
+
+            const weekKeys = Object.keys(byWeek).filter(k => k !== 'Sin semana').sort((a,b) => (a < b ? -1 : a > b ? 1 : 0));
+            const weekLabels = weekKeys.map(k => {
+                const parts = k.split('-');
+                const y = parts[0];
+                const w = Number(parts[1]);
+                return `${y} · S${w}`;
+            });
+            const weekCounts = weekKeys.map(k => byWeek[k]);
+
+            // Top técnicos
+            const byTec = {};
+            data.forEach(r => {
+                const t = r.__derived.tecnico || 'Sin técnico';
+                if (t && t !== '-' && t !== 'Sin técnico') byTec[t] = (byTec[t] || 0) + 1;
+            });
+            const tecSorted = Object.entries(byTec).sort((a,b) => b[1]-a[1]).slice(0, 15);
+            const tecLabels = tecSorted.map(x => x[0]);
+            const tecCounts = tecSorted.map(x => x[1]);
+
+            // Top estación
+            const byEst = {};
+            data.forEach(r => {
+                const e = r.__derived.estacion || 'Sin estación';
+                if (e && e !== '-' && e !== 'Sin estación') byEst[e] = (byEst[e] || 0) + 1;
+            });
+            const estSorted = Object.entries(byEst).sort((a,b) => b[1]-a[1]).slice(0, 15);
+            const estLabels = estSorted.map(x => x[0]);
+            const estCounts = estSorted.map(x => x[1]);
+
+            document.getElementById('chartsContainerObservaciones').innerHTML = `
+                <div class="charts-section">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Observaciones por Semana (cronológico)</h3>
+                        <div class="chart-container">
+                            <canvas id="obsPorSemanaChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Evolución de Incidencias (por semana)</h3>
+                        <div class="chart-container">
+                            <canvas id="evolucionIncidenciasChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Observaciones por Técnico (Top 15)</h3>
+                        <div class="chart-container">
+                            <canvas id="obsPorTecnicoChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Observaciones por Estación de Trabajo (Top 15)</h3>
+                        <div class="chart-container">
+                            <canvas id="obsPorEstacionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const baseOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        ticks: { color: '#8b96a8', font: { family: 'Inter', size: 10 } },
+                        grid: { color: 'rgba(157, 198, 66, 0.05)' }
+                    },
+                    y: {
+                        ticks: { color: '#8b96a8', font: { family: 'Inter', size: 10 } },
+                        grid: { color: 'rgba(157, 198, 66, 0.05)' }
+                    }
+                }
+            };
+
+            // Bar por semana
+            chartsObservaciones.semana = new Chart(document.getElementById('obsPorSemanaChart'), {
+                type: 'bar',
+                data: {
+                    labels: weekLabels,
+                    datasets: [{
+                        label: 'Observaciones',
+                        data: weekCounts,
+                        backgroundColor: 'rgba(157, 198, 66, 0.6)',
+                        borderColor: '#9dc642',
+                        borderWidth: 1
+                    }]
+                },
+                options: baseOptions
+            });
+
+            // Line evolución
+            chartsObservaciones.evolucion = new Chart(document.getElementById('evolucionIncidenciasChart'), {
+                type: 'line',
+                data: {
+                    labels: weekLabels,
+                    datasets: [{
+                        label: 'Incidencias',
+                        data: weekCounts,
+                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(0, 212, 255, 0.12)',
+                        tension: 0.35,
+                        borderWidth: 2,
+                        fill: true,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    ...baseOptions,
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Técnico (horizontal)
+            if (tecLabels.length > 0) {
+                chartsObservaciones.tecnico = new Chart(document.getElementById('obsPorTecnicoChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: tecLabels,
+                        datasets: [{
+                            label: 'Observaciones',
+                            data: tecCounts,
+                            backgroundColor: 'rgba(157, 198, 66, 0.6)',
+                            borderColor: '#9dc642',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        ...baseOptions,
+                        indexAxis: 'y',
+                        scales: {
+                            x: baseOptions.scales.y,
+                            y: {
+                                ticks: { color: '#8b96a8', font: { family: 'Inter', size: 10 } },
+                                grid: { color: 'rgba(157, 198, 66, 0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Estación (horizontal)
+            if (estLabels.length > 0) {
+                chartsObservaciones.estacion = new Chart(document.getElementById('obsPorEstacionChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: estLabels,
+                        datasets: [{
+                            label: 'Observaciones',
+                            data: estCounts,
+                            backgroundColor: 'rgba(0, 212, 255, 0.6)',
+                            borderColor: '#00d4ff',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        ...baseOptions,
+                        indexAxis: 'y',
+                        scales: {
+                            x: baseOptions.scales.y,
+                            y: {
+                                ticks: { color: '#8b96a8', font: { family: 'Inter', size: 10 } },
+                                grid: { color: 'rgba(157, 198, 66, 0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderObservacionesTable(data) {
+            // Columns desired order; hide Incidencia + Observador
+            const columns = [
+                { key: 'fecha', label: 'Fecha Incidencia' },
+                { key: 'semana', label: 'Semana' },
+                { key: 'estacion', label: 'Estación de trabajo' },
+                { key: 'tecnico', label: 'Técnico' },
+                { key: 'tipo', label: 'Tipo de incidencia' }
+            ];
+
+            const rowsHtml = data.map(r => {
+                const d = r.__derived;
+                return `
+                    <tr>
+                        <td>${d.fechaFmt || '-'}</td>
+                        <td>${d.semanaNum !== '' ? d.semanaNum : '-'}</td>
+                        <td>${d.estacion || '-'}</td>
+                        <td>${d.tecnico || '-'}</td>
+                        <td>${d.tipo || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const tableHTML = `
+                <div class="table-section">
+                    <div class="table-header">
+                        <h2 class="table-title">Observaciones Detalladas</h2>
+                        <span class="badge badge-success">${data.length.toLocaleString()} registros</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    ${columns.map(c => `<th>${c.label}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('dataContainerObservaciones').innerHTML = tableHTML;
+        }
+
+        
+        // ==================== CAPACITACIONES ====================
+        function _capNorm(str) {
+            return String(str ?? '')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toLowerCase();
+        }
+
+        function _capFindKey(keys, includesAny) {
+            const normKeys = keys.map(k => ({ k, n: _capNorm(k) }));
+            for (const inc of includesAny) {
+                const nInc = _capNorm(inc);
+                const hit = normKeys.find(o => o.n.includes(nInc));
+                if (hit) return hit.k;
+            }
+            return null;
+        }
+
+        function _capIsYes(v) {
+            const n = _capNorm(v);
+            return n === 'si' || n === 'sí' || n === 'yes' || n === 'y' || n === '1' || n === 'true';
+        }
+
+        function _capParseHours(v) {
+    if (v === null || v === undefined) return 0;
+    const s = String(v).replace(',', '.').trim();
+    const num = parseFloat(s);
+    return Number.isFinite(num) ? num : 0;
+}
+
+function _capParsePercent(v) {
+    if (v === null || v === undefined) return null;
+    const sRaw = String(v).trim();
+    if (!sRaw) return null;
+    const s = sRaw.replace('%','').replace(',', '.').trim();
+    // Soporte SI/NO como fallback
+    if (/^si$/i.test(s)) return 100;
+    if (/^no$/i.test(s)) return 0;
+    const num = parseFloat(s);
+    return Number.isFinite(num) ? Math.max(0, Math.min(100, num)) : null;
+}
+
+function _escapeHtml(str) {
+    const s = (str === null || str === undefined) ? '' : String(str);
+    return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+
+function _capGetTechnicianColumns(keys) {
+    // Columnas conocidas (no técnicos)
+    const known = new Set([
+        _capFindKey(keys, ['nombre del instructivo','instructivo']),
+        _capFindKey(keys, ['temario']),
+        _capFindKey(keys, ['duración','duracion','duracion (horas)','duración (horas)']),
+        _capFindKey(keys, ['status de capacitación','status de capacitacion','capacitacion']),
+        _capFindKey(keys, ['status de evaluación','status de evaluacion','evaluacion','evaluación']),
+    ].filter(Boolean));
+
+    // Metadatos típicos de SharePoint/PowerAutomate
+    const hardExclude = new Set(['ItemInternalId','ItemInternalID','ID','Id','id']);
+
+    // Todo lo demás lo tratamos como técnico (tu caso F..Q), excluyendo metadatos
+    const techCols = keys.filter(k => {
+        if (!k) return false;
+        const ks = String(k).trim();
+        if (!ks) return false;
+        if (known.has(k)) return false;
+        if (ks.startsWith('@')) return false;
+        if (hardExclude.has(ks)) return false;
+        const low = ks.toLowerCase();
+        if (low.includes('iteminternal')) return false;
+        if (low.includes('odata')) return false;
+        return true;
+    });
+
+    return techCols;
+}
+
+function _capAvg(arr) {
+    const nums = arr.filter(v => Number.isFinite(v));
+    if (!nums.length) return null;
+    const sum = nums.reduce((a,b)=>a+b,0);
+    return sum / nums.length;
+}
+
+        async function loadCapacitacionesData() {
+            const container = document.getElementById('dataContainerCapacitaciones');
+            const statsContainer = document.getElementById('statsContainerCapacitaciones');
+            const chartsContainer = document.getElementById('chartsContainerCapacitaciones');
+            const loadBtn = document.getElementById('loadBtnCapacitaciones');
+
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Cargando datos de capacitaciones...</p>
+                </div>
+            `;
+            statsContainer.innerHTML = '';
+            chartsContainer.innerHTML = '';
+            loadBtn.disabled = true;
+
+            try {
+                const response = await fetch(API_CONFIG.capacitaciones, { method: 'POST' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                // Normaliza formato de salida: array directo o { data: [...] }
+                const rows = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+                capacitacionesData = rows;
+
+                _capBuildFilters(rows);
+                renderCapacitacionesDashboard();
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="error">
+                        <h3>Error al cargar Capacitaciones</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                console.error('Capacitaciones error:', error);
+            } finally {
+                loadBtn.disabled = false;
+            }
+        }
+
+        function _capBuildFilters(rows) {
+    const tecnicoSel = document.getElementById('capTecnicoFilter');
+    const temarioSel = document.getElementById('capTemarioFilter');
+
+    tecnicoSel.innerHTML = `<option value="">Todos los técnicos</option>`;
+    temarioSel.innerHTML = `<option value="">Todos los temarios</option>`;
+
+    if (!rows || rows.length === 0) return;
+
+    const keys = Object.keys(rows[0] || {});
+    const temarioKey = _capFindKey(keys, ['temario']);
+
+    // Técnicos por columnas (F..Q)
+    const techCols = _capGetTechnicianColumns(keys);
+    techCols
+        .map(k => String(k).trim())
+        .sort((a,b)=>a.localeCompare(b,'es'))
+        .forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            tecnicoSel.appendChild(opt);
+        });
+
+    // Temarios
+    if (temarioKey) {
+        const temarios = new Set();
+        rows.forEach(r => {
+            const v = r[temarioKey];
+            if (v !== null && v !== undefined && String(v).trim() !== '') {
+                temarios.add(String(v).trim());
+            }
+        });
+        [...temarios].sort((a,b)=>a.localeCompare(b,'es')).forEach(v=>{
+            const opt=document.createElement('option');
+            opt.value=v; opt.textContent=v;
+            temarioSel.appendChild(opt);
+        });
+    }
+}
+
+        function renderCapacitacionesDashboard() {
+    const container = document.getElementById('dataContainerCapacitaciones');
+    const statsContainer = document.getElementById('statsContainerCapacitaciones');
+    const chartsContainer = document.getElementById('chartsContainerCapacitaciones');
+
+    if (!capacitacionesData || capacitacionesData.length === 0) {
+        container.innerHTML = `<div class="empty-state"><h3>Sin datos</h3><p>No hay registros de capacitaciones.</p></div>`;
+        statsContainer.innerHTML = '';
+        chartsContainer.innerHTML = '';
+        return;
+    }
+
+    const tecnicoFilterName = document.getElementById('capTecnicoFilter').value; // nombre de columna
+    const temarioFilter = document.getElementById('capTemarioFilter').value;
+
+    const keys = Object.keys(capacitacionesData[0] || {});
+    const instructivoKey = _capFindKey(keys, ['nombre del instructivo', 'instructivo']);
+    const temarioKey = _capFindKey(keys, ['temario']);
+    const durKey = _capFindKey(keys, ['duración', 'duracion', 'duracion (horas)', 'duración (horas)']);
+    const capKey = _capFindKey(keys, ['status de capacitación', 'status de capacitacion', 'capacitacion']);
+    const evalKey = _capFindKey(keys, ['status de evaluación', 'status de evaluacion', 'evaluacion', 'evaluación']);
+
+    const techCols = _capGetTechnicianColumns(keys);
+    const selectedTechKey = tecnicoFilterName ? techCols.find(k => String(k).trim() === String(tecnicoFilterName).trim()) : null;
+    const techScope = selectedTechKey ? [selectedTechKey] : techCols;
+
+    // Filtra por temario (técnico es por columnas, no por filas)
+    const filtered = capacitacionesData.filter(r => {
+        const tm = temarioKey ? String(r[temarioKey] ?? '').trim() : '';
+        if (temarioFilter && tm !== temarioFilter) return false;
+        return true;
+    });
+
+    // ==================== MÉTRICAS BASE (por módulo) ====================
+    const totalModulos = filtered.length;
+    let capDone = 0, evalDone = 0, complete = 0;
+    let horasPend = 0;
+
+    filtered.forEach(r => {
+        const capOK = capKey ? _capIsYes(r[capKey]) : false;
+        const evalOK = evalKey ? _capIsYes(r[evalKey]) : false;
+        if (capOK) capDone++;
+        if (evalOK) evalDone++;
+        if (capOK && evalOK) complete++;
+        else horasPend += durKey ? _capParseHours(r[durKey]) : 0;
+    });
+
+    const pctCap = totalModulos ? (capDone / totalModulos) * 100 : 0;
+    const pctEval = totalModulos ? (evalDone / totalModulos) * 100 : 0;
+    const pctComplete = totalModulos ? (complete / totalModulos) * 100 : 0;
+
+    // ==================== MÉTRICAS POR TÉCNICO (por columnas F..Q) ====================
+    const allPercents = [];
+    const perTech = new Map(); // tech -> [vals]
+    techScope.forEach(k => perTech.set(k, []));
+
+    filtered.forEach(r => {
+        techScope.forEach(k => {
+            const v = _capParsePercent(r[k]);
+            if (v === null) return;
+            allPercents.push(v);
+            perTech.get(k).push(v);
+        });
+    });
+
+    const globalEvalAvg = _capAvg(allPercents); // 0..100 o null
+
+    // ==================== CARDS ====================
+    statsContainer.innerHTML = `
+        <div class="stats-grid stats-grid-compact">
+            <div class="stat-card stat-card-compact">
+                <div class="stat-label">Avance Global (Módulos)</div>
+                <div class="stat-value stat-value-compact">${pctComplete.toFixed(1)}%</div>
+                <div class="stat-info">${complete} de ${totalModulos} completos</div>
+            </div>
+            <div class="stat-card stat-card-compact">
+                <div class="stat-label">Capacitación</div>
+                <div class="stat-value stat-value-compact">${pctCap.toFixed(1)}%</div>
+                <div class="stat-info">${capDone} de ${totalModulos} con "SI"</div>
+            </div>
+            <div class="stat-card stat-card-compact">
+                <div class="stat-label">Evaluación</div>
+                <div class="stat-value stat-value-compact">${pctEval.toFixed(1)}%</div>
+                <div class="stat-info">${evalDone} de ${totalModulos} con "SI"</div>
+            </div>
+            <div class="stat-card stat-card-compact">
+                <div class="stat-label">Promedio Evaluaciones (Técnicos)</div>
+                <div class="stat-value stat-value-compact">${(globalEvalAvg === null ? '—' : globalEvalAvg.toFixed(1) + '%')}</div>
+                <div class="stat-info">${selectedTechKey ? 'Técnico seleccionado' : 'Promedio de todos los técnicos'}</div>
+            </div>
+            <div class="stat-card stat-card-compact">
+                <div class="stat-label">Horas Pendientes</div>
+                <div class="stat-value stat-value-compact">${(durKey ? horasPend.toFixed(1) : '—')}</div>
+                <div class="stat-info">${durKey ? 'Suma duración (no completos)' : 'Duración aún vacía'}</div>
+            </div>
+        </div>
+    `;
+
+    // ==================== AGRUPACIÓN POR TEMARIO (promedio %) ====================
+    const temarioMap = new Map(); // temario -> [vals]
+    filtered.forEach(r => {
+        const tm = temarioKey ? String(r[temarioKey] ?? 'Sin temario').trim() : 'Sin temario';
+        if (!temarioMap.has(tm)) temarioMap.set(tm, []);
+        techScope.forEach(k => {
+            const v = _capParsePercent(r[k]);
+            if (v === null) return;
+            temarioMap.get(tm).push(v);
+        });
+    });
+
+    const temarioLabels = [...temarioMap.keys()].sort((a,b)=>a.localeCompare(b,'es'));
+    const temarioValues = temarioLabels.map(t => {
+        const avg = _capAvg(temarioMap.get(t));
+        return avg === null ? 0 : avg;
+    });
+
+    // ==================== CHARTS ====================
+    chartsContainer.innerHTML = `
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Evaluación por Técnico (${selectedTechKey ? 'seleccionado' : 'promedio'})</h3>
+                <div class="chart-container" style="height: 340px;">
+                    <canvas id="capChartTecnicos"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Avance por Temario (${selectedTechKey ? 'técnico seleccionado' : 'promedio'})</h3>
+                <div class="chart-container" style="height: 340px;">
+                    <canvas id="capChartTemarios"></canvas>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Destroy charts previos si existen
+    const old1 = Chart.getChart('capChartTecnicos');
+    if (old1) old1.destroy();
+    const old2 = Chart.getChart('capChartTemarios');
+    if (old2) old2.destroy();
+
+    // Datos por técnico (si no hay seleccionado: muestra todos)
+    const techLabels = (selectedTechKey ? [selectedTechKey] : [...perTech.keys()].map(k=>String(k).trim()).sort((a,b)=>a.localeCompare(b,'es')));
+    const techValues = techLabels.map(lbl => {
+        const key = selectedTechKey ? selectedTechKey : techCols.find(k=>String(k).trim()===lbl);
+        const avg = _capAvg(perTech.get(key) || []);
+        return avg === null ? 0 : avg;
+    });
+
+    const ctxTech = document.getElementById('capChartTecnicos').getContext('2d');
+    new Chart(ctxTech, {
+        type: 'bar',
+        data: {
+            labels: techLabels,
+            datasets: [{
+                label: 'Promedio %',
+                data: techValues
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+                x: { beginAtZero: true, max: 100 }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.raw.toFixed(1)}%`
+                    }
+                }
+            }
+        }
+    });
+
+    const ctxTem = document.getElementById('capChartTemarios').getContext('2d');
+    new Chart(ctxTem, {
+        type: 'bar',
+        data: {
+            labels: temarioLabels,
+            datasets: [{
+                label: 'Promedio %',
+                data: temarioValues
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, max: 100 }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.raw.toFixed(1)}%`
+                    }
+                }
+            }
+        }
+    });
+
+    // ==================== TABLA DETALLADA ====================
+    const techColLabel = selectedTechKey ? String(selectedTechKey).trim() : null;
+
+    const tableRows = filtered.map(r => {
+        const instructivo = instructivoKey ? String(r[instructivoKey] ?? '').trim() : '';
+        const temario = temarioKey ? String(r[temarioKey] ?? '').trim() : '';
+        const capS = capKey ? (String(r[capKey] ?? '').trim() || '-') : '-';
+        const evalS = evalKey ? (String(r[evalKey] ?? '').trim() || '-') : '-';
+        const dur = durKey ? (String(r[durKey] ?? '').trim() || '-') : '-';
+        const techVal = techColLabel ? _capParsePercent(r[selectedTechKey]) : null;
+
+        return `
+            <tr>
+                <td>${_escapeHtml(instructivo || '-')}</td>
+                <td>${_escapeHtml(temario || '-')}</td>
+                <td style="text-align:center;">${_escapeHtml(dur)}</td>
+                <td style="text-align:center;">${_escapeHtml(capS)}</td>
+                <td style="text-align:center;">${_escapeHtml(evalS)}</td>
+                ${techColLabel ? `<td style="text-align:center;">${techVal === null ? '-' : techVal.toFixed(1) + '%'}</td>` : ``}
+            </tr>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="table-card">
+            <div class="table-header">
+                <h3>Detalle de Capacitaciones</h3>
+                <span class="badge">${filtered.length} registros</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre del Instructivo</th>
+                            <th>Temario</th>
+                            <th>Duración (h)</th>
+                            <th>Status Capacitación</th>
+                            <th>Status Evaluación</th>
+                            ${techColLabel ? `<th>% ${_escapeHtml(techColLabel)}</th>` : ``}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows || `<tr><td colspan="${techColLabel ? 6 : 5}" style="text-align:center; padding:18px;">Sin registros</td></tr>`}
+                    </tbody>
+                </table>
+            </div>
+            <div class="hint" style="margin-top:10px; opacity:.85;">
+                ${techCols.length ? `Técnicos detectados: ${techCols.length} (columnas F..Q).` : `No se detectaron columnas de técnicos. Revisa el Flow/Excel.`}
+            </div>
+        </div>
+    `;
+}
+
+// ==================== EVENT LISTENERS ====================
+        
+        // Produccion filters
+        document.getElementById('componentFilter').addEventListener('change', () => {
+            if (produccionData.length > 0) renderProduccionDashboard();
+        });
+
+        document.getElementById('mesFilter').addEventListener('change', () => {
+            if (produccionData.length > 0) renderProduccionDashboard();
+        });
+
+        document.getElementById('anioFilter').addEventListener('change', () => {
+            if (produccionData.length > 0) renderProduccionDashboard();
+        });
+
+        // Observaciones filters
+        document.getElementById('anioFilterObs').addEventListener('change', () => {
+            if (observacionesData.length > 0) {
+                const y = document.getElementById('anioFilterObs').value;
+                _rebuildSemanaOptionsForYear(y);
+                renderObservacionesDashboard();
+            }
+        });
+
+        document.getElementById('semanaFilterObs').addEventListener('change', () => {
+            if (observacionesData.length > 0) renderObservacionesDashboard();
+        });
+
+        document.getElementById('tipoIncidenciaFilter').addEventListener('change', () => {
+            if (observacionesData.length > 0) renderObservacionesDashboard();
+        });
+
+        document.getElementById('tecnicoFilter').addEventListener('change', () => {
+            if (observacionesData.length > 0) renderObservacionesDashboard();
+        });
+
+        document.getElementById('estacionFilter').addEventListener('change', () => {
+            if (observacionesData.length > 0) renderObservacionesDashboard();
+        });
+
+        
+        // Capacitaciones filters
+        document.getElementById('capTecnicoFilter').addEventListener('change', () => {
+            if (capacitacionesData.length > 0) renderCapacitacionesDashboard();
+        });
+
+        document.getElementById('capTemarioFilter').addEventListener('change', () => {
+            if (capacitacionesData.length > 0) renderCapacitacionesDashboard();
+        });
+
+// Load buttons
+        document.getElementById('loadBtnProduccion').addEventListener('click', loadProduccionData);
+        document.getElementById('loadBtnObservaciones').addEventListener('click', loadObservacionesData);
+
+                document.getElementById('loadBtnCapacitaciones').addEventListener('click', loadCapacitacionesData);
+// ==================== INICIALIZACIÓN ====================
+        
+        document.getElementById('dataContainerProduccion').innerHTML = `
+            <div class="loading">
+                <div style="font-size: 2.6rem; margin-bottom: 20px;">📊</div>
+                <p style="color: var(--accent-primary);">Presiona "Actualizar Datos" para cargar</p>
+            </div>
+        `;
+
+        document.getElementById('dataContainerObservaciones').innerHTML = `
+            <div class="loading">
+                <div style="font-size: 2.6rem; margin-bottom: 20px;">📋</div>
+                <p style="color: var(--accent-primary);">Presiona "Actualizar Datos" para cargar</p>
+            </div>
+        `;
+
+        window.addEventListener('load', () => {
+            setTimeout(loadProduccionData, 500);
+        });
+    
+
+        // Auto-carga: Observaciones al abrir el archivo (igual que Producción cuando el usuario presiona el botón)
+        // Si el endpoint falla, solo se mostrará el error en el panel de Observaciones sin romper el resto del dashboard.
+        (function autoLoadObservacionesOnOpen(){
+            try {
+                // Espera 1 tick para asegurar que el DOM y los listeners estén listos
+                setTimeout(() => {
+                    if (typeof loadObservacionesData === 'function') {
+                        loadObservacionesData();
+                    }
+                }, 0);
+            } catch (e) {
+                console.warn('Auto-load Observaciones falló:', e);
+            }
+        
+        })();
+
+        // Auto-carga: Capacitaciones al abrir el archivo
+        (function autoLoadCapacitacionesOnOpen(){
+            try {
+                setTimeout(() => {
+                    if (typeof loadCapacitacionesData === 'function') {
+                        loadCapacitacionesData();
+                    }
+                }, 0);
+            } catch (e) {
+                console.warn('Auto-load Capacitaciones falló:', e);
+            }
+        })();
+
+</script>
+</body>
+</html>
